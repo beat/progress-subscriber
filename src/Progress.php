@@ -29,12 +29,12 @@ class Progress implements SubscriberInterface
 
     public function getEvents()
     {
-        $events = [];
+        $events = array();
         if ($this->uploadProgress) {
-            $events['before'] = ['onBefore', RequestEvents::PREPARE_REQUEST];
+            $events['before'] = array('onBefore', RequestEvents::PREPARE_REQUEST);
         }
         if ($this->downloadProgress) {
-            $events['headers'] = ['onHeaders'];
+            $events['headers'] = array('onHeaders');
         }
 
         return $events;
