@@ -20,8 +20,8 @@ class Progress implements SubscriberInterface
      * @param callable $downloadProgress Invoked as data is downloaded.
      */
     public function __construct(
-        callable $uploadProgress = null,
-        callable $downloadProgress = null
+        $uploadProgress = null,
+        $downloadProgress = null
     ) {
         $this->uploadProgress = $uploadProgress;
         $this->downloadProgress = $downloadProgress;

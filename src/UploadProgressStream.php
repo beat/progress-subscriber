@@ -141,7 +141,7 @@ class UploadProgressStream implements StreamInterface
      */
     public function __construct(
         StreamInterface $stream,
-        callable $notify,
+        $notify,
         ClientInterface $client,
         RequestInterface $request
     ) {

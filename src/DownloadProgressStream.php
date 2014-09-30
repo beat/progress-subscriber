@@ -146,7 +146,7 @@ class DownloadProgressStream implements StreamInterface
      */
     public function __construct(
         StreamInterface $stream,
-        callable $notify,
+        $notify,
         $expectedSize,
         ClientInterface $client,
         RequestInterface $request,
