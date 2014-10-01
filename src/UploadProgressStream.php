@@ -5,6 +5,7 @@ use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Stream\MetadataStreamInterface;
 use GuzzleHttp\Stream\StreamInterface;
+use GuzzleHttp\Stream\Utils;
 
 /**
  * Adds upload progress events to a stream.
@@ -15,7 +16,7 @@ use GuzzleHttp\Stream\StreamInterface;
  */
 class UploadProgressStream implements StreamInterface
 {
-    //BB use StreamDecoratorTrait;
+	//BB use StreamDecoratorTrait;
 	/** @var StreamInterface Decorated stream */
 	private $stream;
 
@@ -27,6 +28,20 @@ class UploadProgressStream implements StreamInterface
 		$this->stream = $stream;
 	}
 	*/
+
+	/**
+	 * Magic method used to create a new stream if streams are not added in
+	 * the constructor of a decorator (e.g., LazyOpenStream).
+	 */
+	public function __get($name)
+	{
+		if ($name == 'stream') {
+			$this->stream = $this->createStream();
+			return $this->stream;
+		}
+
+		throw new \UnexpectedValueException("$name not found on class");
+	}
 
 	public function __toString()
 	{
@@ -43,7 +58,7 @@ class UploadProgressStream implements StreamInterface
 
 	public function getContents($maxLength = -1)
 	{
-		return \GuzzleHttp\Stream\copy_to_string($this, $maxLength);
+		return Utils::copyToString($this, $maxLength);
 	}
 
 	/**
@@ -62,9 +77,15 @@ class UploadProgressStream implements StreamInterface
 		return $result === $this->stream ? $this : $result;
 	}
 
+	/**
+	 * Calls flush() and closes the underlying stream.
+	 */
 	public function close()
 	{
-		return $this->stream->close();
+		// Allow the decorated stream to flush any buffered content on close.
+		$this->flush();
+		// Close the decorated stream.
+		$this->stream->close();
 	}
 
 	public function getMetadata($key = null)
@@ -76,9 +97,7 @@ class UploadProgressStream implements StreamInterface
 
 	public function detach()
 	{
-		$this->stream->detach();
-
-		return $this;
+		return $this->stream->detach();
 	}
 
 	public function getSize()
@@ -111,12 +130,22 @@ class UploadProgressStream implements StreamInterface
 		return $this->stream->isSeekable();
 	}
 
+	/**
+	 * Calls flush() and seeks to the specified position in the stream.
+	 *
+	 * {@inheritdoc}
+	 */
 	public function seek($offset, $whence = SEEK_SET)
 	{
+		// Flush the stream before seeking to allow decorators to flush their
+		// state before losing their position in the stream.
+		// see: https://github.com/php/php-src/blob/8b66d64b2343bc4fd8aeabb690024edb850a0155/main/streams/streams.c#L1312
+		$this->flush();
+
 		return $this->stream->seek($offset, $whence);
 	}
 
-	/*BB
+	/*
 	public function read($length)
 	{
 		return $this->stream->read($length);
@@ -127,7 +156,25 @@ class UploadProgressStream implements StreamInterface
 	{
 		return $this->stream->write($string);
 	}
-    //BB end StreamDecoratorTrait;
+
+	public function flush()
+	{
+		return $this->stream->flush();
+	}
+
+	/**
+	 * Implement in subclasses to dynamically create streams when requested.
+	 *
+	 * @return StreamInterface
+	 * @throws \BadMethodCallException
+	 */
+	protected function createStream()
+	{
+		throw new \BadMethodCallException('createStream() not implemented in '
+			. get_class($this));
+	}
+
+	//BB end StreamDecoratorTrait
 
     private $reachedEnd;
     private $client;
